@@ -36,3 +36,40 @@ def get_building_info(buildings_data: List[Dict[str]]) -> List[Dict[str]]:
             "long": lon
         })
     return results
+
+def get_building_coordinates(building_name: str, buildings_data: List[Dict[str]]) -> Dict[str, Any]:
+    """
+    Retrieve lat/lng coordinates for a given building using fuzzy name matching.
+    If an exact match is not found, suggests the closest known name.
+    :param building_name: user-input building name
+    :param buildings_data: list of building dictionaries
+    :return: dict with name, lat, lon or None if not found
+    """
+    query = building_name.lower().strip()
+
+    # Try exact match first
+    for building in buildings_data:
+        if building.get("name") and building["name"].lower() == query:
+            if building.get("lat") and building.get("long"):
+                return {"lat": building["lat"], "long": building["long"]}
+            else:
+                return {"error": "Coordinates not available for this building."}
+
+    # If no exact match, suggest close matches using rapidfuzz
+    building_names = []
+    for building in buildings_data:
+        if building.get("name"):
+            building_names.append(building["name"])
+
+    close_matches = process.extract(query, building_names, limit=3)
+    filtered_matches = []
+    for match in close_matches:
+        if match[1] >= 65:
+            filtered_matches.append(match)
+    close_matches = filtered_matches
+
+    if close_matches:
+        suggestions = [match[0] for match in close_matches]
+        return {"error": f"Did you mean: {', '.join(suggestions)}?"}
+
+    return {"error": "No matching building found."}
