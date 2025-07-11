@@ -1,0 +1,14 @@
+course_code,class_name,day,start_time,end_time,building
+NUTRI SCI 132, Nutrition Today, Monday, 11:00:00, 11:50:00, Agricultural Hall
+NUTRI SCI 132, Nutrition Today, Wednesday, 11:00:00, 11:50:00, Agricultural Hall
+NUTRI SCI 132, Nutrition Today, Friday, 11:00:00, 11:50:00, Agricultural Hall
+COMP SCI 252, Intro Comp Eng, Wednesday, 08:00:00, 09:15:00, Brogden Psychology Building
+COMP SCI 252, Intro Comp Eng, Friday, 08:00:00, 09:15:00, Brogden Psychology Building
+COMP SCI 300, Programming II, Monday, 13:20:00, 14:10:00, Noland Hall
+COMP SCI 300, Programming II, Wednesday, 13:20:00, 14:10:00, Noland Hall
+COMP SCI 300, Programming II, Friday, 13:20:00, 14:10:00, Noland Hall
+ECON 301, Intermediate Micro, Tuesday, 14:30:00, 15:45:00, Ingraham Hall
+ECON 301, Intermediate Micro, Thursday, 14:30:00, 15:45:00, Ingraham Hall
+ECON 301, Intermediate Micro, Friday, 15:30:00, 16:20:00, Ingraham Hall
+
+
