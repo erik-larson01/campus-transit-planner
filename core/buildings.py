@@ -1,8 +1,7 @@
 import json
 from typing import List, Dict, Any
-from rapidfuzz import process, fuzz
-
-def load_buildings(json_path: str = "data/buildings.geojson") -> List[Dict[str]]:
+from rapidfuzz import process
+def load_buildings(json_path: str = "data/buildings.geojson") -> list[Dict[str, Any]]:
     """
     Load campus buildings data from JSON/GeoJSON.
     :param json_path: path to buildings JSON file
@@ -14,7 +13,7 @@ def load_buildings(json_path: str = "data/buildings.geojson") -> List[Dict[str]]
     updated_building_info = get_building_info(data)
     return updated_building_info
 
-def get_building_info(buildings_data: List[Dict[str]]) -> List[Dict[str]]:
+def get_building_info(buildings_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
     Extracts a list of a buildings geo info, such as name, street address and coordinates
     :param buildings_data: list of all buildings from loaded buildings.geojson
@@ -24,7 +23,7 @@ def get_building_info(buildings_data: List[Dict[str]]) -> List[Dict[str]]:
     for building in buildings_data:
         name = building.get("name")
         street_address = building.get("street_address")
-        latlng = building.get("latlng", None)
+        latlng = building.get("latlng")
         if latlng:
             lat, lon = latlng[0], latlng[1]
         else:
@@ -37,7 +36,7 @@ def get_building_info(buildings_data: List[Dict[str]]) -> List[Dict[str]]:
         })
     return results
 
-def get_building_coordinates(building_name: str, buildings_data: List[Dict[str]]) -> Dict[str, Any]:
+def get_building_coordinates(building_name: str, buildings_data: List[Dict[str, Any]]) -> Dict[str, Any]:
     """
     Retrieve lat/lng coordinates for a given building using fuzzy name matching.
     If an exact match is not found, suggests the closest known name.
@@ -47,7 +46,6 @@ def get_building_coordinates(building_name: str, buildings_data: List[Dict[str]]
     """
     query = building_name.lower().strip()
 
-    # Try exact match first
     for building in buildings_data:
         if building.get("name") and building["name"].lower() == query:
             if building.get("lat") and building.get("long"):
@@ -55,21 +53,52 @@ def get_building_coordinates(building_name: str, buildings_data: List[Dict[str]]
             else:
                 return {"error": "Coordinates not available for this building."}
 
-    # If no exact match, suggest close matches using rapidfuzz
+    return {"error": "No matching building found."}
+
+def match_building_names(user_buildings: List[str], buildings_data: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """
+    Matches user input building names to valid campus building names pulled from map.wisc.edu.
+
+    :param user_buildings: list of raw user-entered building names
+    :param buildings_data: list of building objects with "name" field from buildings.geojson
+    :return: dict with 'exact_matches', 'best_matches', 'suggestions', and 'unmatched' to be used by cli.py
+    """
     building_names = []
     for building in buildings_data:
-        if building.get("name"):
+        if "name" in building and building["name"]:
             building_names.append(building["name"])
 
-    close_matches = process.extract(query, building_names, limit=3)
-    filtered_matches = []
-    for match in close_matches:
-        if match[1] >= 65:
-            filtered_matches.append(match)
-    close_matches = filtered_matches
+    exact_matches = {}
+    best_matches = {}
+    suggestions = {}
+    unmatched = []
 
-    if close_matches:
-        suggestions = [match[0] for match in close_matches]
-        return {"error": f"Did you mean: {', '.join(suggestions)}?"}
+    for user_building in user_buildings:
+        match_found = False
 
-    return {"error": "No matching building found."}
+        for official_name in building_names:
+            if user_building.strip().lower() == official_name.strip().lower():
+                exact_matches[user_building] = official_name
+                match_found = True
+                break
+
+        if not match_found:
+            fuzzy_matches = process.extract(user_building, building_names, limit=5)
+
+            if len(fuzzy_matches) > 0 and fuzzy_matches[0][1] >= 80:
+                best_match = fuzzy_matches[0][0]
+                best_matches[user_building] = best_match
+
+                suggestion_list = []
+                for match in fuzzy_matches[1:]:
+                        suggestion_list.append(match[0])
+                suggestions[user_building] = suggestion_list
+            else:
+                unmatched.append(user_building)
+
+    return {
+        "exact_matches": exact_matches,
+        "best_matches": best_matches,
+        "suggestions": suggestions,
+        "unmatched": unmatched
+    }
