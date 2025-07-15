@@ -1,9 +1,12 @@
-from core import route_planner
+import core.cli as cli
 
 def main():
-    # TODO: Run app
-    print("Campus Transit Planner - Starting route planner...")
-    pass
+    print("=== Campus Transit Planner ===")
+    print()
+
+    updated_schedule = cli.run_schedule_validation()
+    print("\nReady to begin transit planning...\n")
+
 
 if __name__ == "__main__":
     main()
