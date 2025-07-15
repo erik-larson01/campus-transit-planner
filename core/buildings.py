@@ -7,9 +7,11 @@ def load_buildings(json_path: str = "data/buildings.geojson") -> list[Dict[str, 
     :param json_path: path to buildings JSON file
     :return: list of building info dicts with name, address, and coordinates
     """
-    with open(json_path, "r") as f:
-        data = json.load(f)
-
+    try:
+        with open(json_path, "r") as f:
+            data = json.load(f)
+    except FileNotFoundError:
+        raise FileNotFoundError(f"Building data file not found: {json_path}")
     updated_building_info = get_building_info(data)
     return updated_building_info
 
