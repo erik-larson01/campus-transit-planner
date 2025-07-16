@@ -41,7 +41,6 @@ def get_building_info(buildings_data: List[Dict[str, Any]]) -> List[Dict[str, An
 def get_building_coordinates(building_name: str, buildings_data: List[Dict[str, Any]]) -> Dict[str, Any]:
     """
     Retrieve lat/lng coordinates for a given building using fuzzy name matching.
-    If an exact match is not found, suggests the closest known name.
     :param building_name: user-input building name
     :param buildings_data: list of building dictionaries
     :return: dict with name, lat, lon or None if not found

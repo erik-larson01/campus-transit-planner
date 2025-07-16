@@ -1,6 +1,7 @@
+import sys
 from typing import List, Dict, Any
 from utils.time_utils import is_time_before
-
+from core.buildings import get_building_coordinates
 import pandas as pd
 
 def load_schedule(csv_path: str = "data/class_schedule.txt") -> List[Dict[str, Any]]:
@@ -123,12 +124,37 @@ def apply_matched_building_names(schedule_data: List[Dict[str, Any]],
     """
     updated_schedule = []
 
-    for item in schedule_data:
-        original_building = item.get("building")
+    for user_class in schedule_data:
+        original_building = user_class.get("building")
         corrected_building = name_mapping.get(original_building)
 
-        updated_item = dict(item)
+        updated_item = dict(user_class)
         updated_item["building"] = corrected_building
         updated_schedule.append(updated_item)
+
+    return updated_schedule
+
+def update_schedule_with_coordinates(schedule_data: List[Dict[str, Any]], buildings_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Adds two new rows to the schedule data with every building's unique coordinates and returns the schedule as
+    an updated list of dictionaries for every class
+    :param schedule_data: the validated and building-matched user schedule
+    :param buildings_data: the list of building dictionaries
+    :return: an updated schedule including the coordinates of every building
+    """
+    updated_schedule = []
+
+    for user_class in schedule_data:
+        user_building = user_class.get("building")
+        coords_for_building = get_building_coordinates(user_building, buildings_data)
+
+        if "error" in coords_for_building:
+            print(f"Error attaching coordinates for '{user_building}': {coords_for_building['error']}")
+            sys.exit(1)
+
+        updated_class = dict(user_class)
+        updated_class["lat"] = coords_for_building["lat"]
+        updated_class["long"] = coords_for_building["long"]
+        updated_schedule.append(updated_class)
 
     return updated_schedule
