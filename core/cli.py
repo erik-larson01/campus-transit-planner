@@ -150,5 +150,44 @@ def run_schedule_validation() -> List[Dict[str, Any]]:
 
     final_schedule = schedule_parser.apply_matched_building_names(validated_schedule_data, mapped_buildings)
 
-    print(f"\nSchedule updated with confirmed building names.")
+    print(f"\nSchedule updated with confirmed building names.\n")
     return final_schedule
+
+
+def get_user_walking_preference() -> float:
+    """
+    Gets a user's max walking distance to an origin bus stop, with the default set to 0.5mi or 800m
+    :return: a user's set max walking distance
+    """
+    MIN_DISTANCE = 10.0
+    MAX_DISTANCE = 2000.0
+    DEFAULT_DISTANCE = 800.0
+
+    print("To help filter bus stops based on your preferences, how far are you willing to walk to bus stops?:")
+    print("- 400m (5 min walk)")
+    print("- 800m (10 min walk)")
+    print("- 1200m (15 min walk)")
+    print("- 1600m (20 min walk)")
+
+    while True:
+        try:
+            user_input = input("Enter distance in meters (or press Enter for 800m default): ").strip()
+
+            if not user_input:
+                return 800.0
+
+            distance = float(user_input)
+
+            if distance <= 0:
+                validated_distance = DEFAULT_DISTANCE
+            else:
+                validated_distance = max(MIN_DISTANCE, min(distance, MAX_DISTANCE))
+
+            if validated_distance != distance:
+                print(f"Distance adjusted to {validated_distance}m (within valid range {MIN_DISTANCE}-{MAX_DISTANCE}m)")
+
+            return validated_distance
+
+        except ValueError:
+            print("Please enter a valid number or press Enter for default.")
+
