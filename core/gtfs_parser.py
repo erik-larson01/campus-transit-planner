@@ -52,7 +52,6 @@ def filter_trips_by_service(trips_df: pd.DataFrame, active_services: List[str]) 
     active_trips = filtered["trip_id"].tolist()
     return active_trips
 
-
 def get_stop_times_for_trip(trip_id: str, stop_times_df: pd.DataFrame) -> List[str]:
     """
     Retrieves all stop times from a specific trip, ordered by stop sequence from stop_times.txt
@@ -68,6 +67,32 @@ def get_stop_times_for_trip(trip_id: str, stop_times_df: pd.DataFrame) -> List[s
     stop_times_in_trip = filtered["stop_id"].tolist()
     return stop_times_in_trip
 
+def get_unique_stops_for_trips(trip_ids: List[str], stop_times_df: pd.DataFrame) -> List[str]:
+    """
+    Given a list of trip_ids, return a list of unique stop ID's served by those trips
+    :param trip_ids: a list of filtered trip_ids that run on a given day
+    :param stop_times_df: stop_times.txt DataFrane
+    :return: list of stop_ids in all valid filtered trips
+    """
+    unique_stops = set()  # use set for uniqueness
+
+    for trip_id in trip_ids:
+        stop_ids = get_stop_times_for_trip(trip_id, stop_times_df)
+        for stop_id in stop_ids:
+            unique_stops.add(stop_id)
+
+    return list(unique_stops)
+
+
+def get_stop_details_for_stop_ids(stop_ids: List[str], stops_df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Given a list of stop IDs, return the filtered stops.txt DataFrame containing only those stops
+    :param stop_ids: List of stop_id strings
+    :param stops_df: The full stops.txt DataFrame
+    :return: filtered DataFrame with stops matching stop_ids
+    """
+    filtered_stops = stops_df[stops_df["stop_id"].isin(stop_ids)].copy()
+    return filtered_stops
 
 def get_route_for_trip(trip_id: str, trips_df: pd.DataFrame, routes_df: pd.DataFrame) -> str:
     """
