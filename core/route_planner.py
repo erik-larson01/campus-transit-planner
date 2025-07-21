@@ -7,6 +7,7 @@ import utils.distance as dist
 import utils.time_utils as time
 import core.cli as cli
 
+
 # TODO: Implement full logic flow from earlier (find stop → route → trip)
 # 1. For each class in schedule, find nearby stops
 # 2. For each stop, find routes serving it
@@ -15,25 +16,54 @@ import core.cli as cli
 # 5. Calculate journey time and pick best option
 # 6. Return summary for all classes
 
-def find_nearby_stops(lat: float, lng: float, stops_data: pd.DataFrame, max_distance: int) -> pd.DataFrame:
+def find_nearby_stops(building_lat: float, building_long: float, stops_data: pd.DataFrame,
+                      max_distance: int) -> pd.DataFrame:
     """
     Find bus stops within max_distance meters of given coordinates.
-    :param lat: latitude of reference point
-    :param lng: longitude of reference point
+    :param building_lat: latitude of reference point
+    :param building_long: longitude of reference point
     :param stops_data: GTFS stops data
     :param max_distance: max walking distance in meters
-    :return: list of nearby stops with distance info
+    :return: a Dataframe containing rows of nearby stops to a campus building
     """
-    pass
+    nearby_rows = []
+    for _, stop in stops_data.iterrows():
+        lat_of_stop = stop["stop_lat"]
+        long_of_stop = stop["stop_lon"]
+        distance = dist.haversine_distance(building_lat, building_long, lat_of_stop, long_of_stop)
+        if distance <= max_distance:
+            nearby_rows.append(stop)
 
-def get_routes_for_stops(stop_ids: list, gtfs_data: dict):
+    return pd.DataFrame(nearby_rows)
+
+
+def get_routes_for_stops(nearby_stops_df: pd.DataFrame, stop_times_df: pd.DataFrame, trips_df: pd.DataFrame,
+                         routes_df: pd.DataFrame) -> pd.DataFrame:
     """
-    Get all bus routes that serve a list of stops.
-    :param stop_ids: list of stop IDs
-    :param gtfs_data: full GTFS dataset
-    :return: list of route IDs serving these stops
+    Get all bus routes that serve at least one stop nearby to the user
+    :param nearby_stops_df: the dataframe of valid stops within max distance
+    :param stop_times_df: stop_times.txt DataFrame
+    :param trips_df: trips.txt Dataframe
+    :param routes_df: routes.txt Dataframe
+    :return: a DataFrame of all route_ids and details that serve stops near a user's origin class building
     """
-    pass
+    # Get the route ids for all bus lines that stop in nearby_stops_df via:
+    # stop_id -> trip_id (in stop_times not stops txt) -> route_id
+
+    # Gets all stop times (rows with both stop and trip ids) via nearby_stops_df
+    stop_ids = nearby_stops_df["stop_id"].unique().tolist()
+    filtered_stop_times = stop_times_df[stop_times_df["stop_id"].isin(stop_ids)]
+
+    # Gets all trip_ids using filtered stop times
+    trip_ids = filtered_stop_times["trip_id"].unique().tolist()
+    filtered_trips = trips_df[trips_df["trip_id"].isin(trip_ids)]
+
+    # Gets all route_ids in filtered trip_ids in trips_df
+    route_ids = filtered_trips["route_id"].unique().tolist()
+
+    # Gets all routes using route_ids in routes_df
+    matching_routes = routes_df[routes_df["route_id"].isin(route_ids)]
+    return matching_routes
 
 def find_viable_trips(destination_stops: list, target_arrival_time: str, day_of_week: str, gtfs_data: dict):
     """
@@ -46,6 +76,7 @@ def find_viable_trips(destination_stops: list, target_arrival_time: str, day_of_
     """
     pass
 
+
 def find_boarding_options(viable_trips: list, current_location: dict, gtfs_data: dict):
     """
     For each viable trip, find possible boarding stops accessible from user location.
@@ -56,6 +87,7 @@ def find_boarding_options(viable_trips: list, current_location: dict, gtfs_data:
     """
     pass
 
+
 def calculate_journey_time(option: dict):
     """
     Calculate total journey time including walking and bus ride.
@@ -64,6 +96,7 @@ def calculate_journey_time(option: dict):
     """
     pass
 
+
 def select_best_bus_option(boarding_options: list):
     """
     Select the best bus option based on journey time and departure time.
@@ -71,6 +104,7 @@ def select_best_bus_option(boarding_options: list):
     :return: best bus option dict or None if no options
     """
     pass
+
 
 def plan_route(schedule: List[Dict[str, Any]], max_walking_distance: int, gtfs_data: dict) -> None:
     """
@@ -91,7 +125,7 @@ def plan_route(schedule: List[Dict[str, Any]], max_walking_distance: int, gtfs_d
         lat = class_entry["lat"]
         long = class_entry["long"]
 
-        # Get all unique stops on a given day via service_id -> trip_id -> stop_id
+        # Get all unique and active (running) stops on a given day via service_id -> trip_id -> stop_id
         active_service_ids = gtfs.get_active_service_ids(day, calendar_df)
         active_trip_ids = gtfs.filter_trips_by_service(trips_df, active_service_ids)
         active_stop_ids = gtfs.get_unique_stops_for_trips(active_trip_ids, stop_times_df)
