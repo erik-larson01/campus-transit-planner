@@ -1,5 +1,5 @@
 import sys
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from utils.time_utils import is_time_before
 from core.buildings import get_building_coordinates
 import pandas as pd
@@ -158,3 +158,25 @@ def update_schedule_with_coordinates(schedule_data: List[Dict[str, Any]], buildi
         updated_schedule.append(updated_class)
 
     return updated_schedule
+
+def find_next_class_for_same_day(schedule: List[Dict[str, Any]], current_day: str, current_time: str) -> Optional[Dict[str, Any]]:
+    """
+    Finds the next class on the same day that starts after the current time
+    :param schedule: full schedule list of dicts
+    :param current_day: the current day
+    :param current_time: current class time (starting time as HH:MM:SS string)
+    :return: a dict of the next class of None if no later class that day
+    """
+    next_class = None
+
+    for class_entry in schedule:
+        class_day = class_entry["day"].lower()
+        class_start = class_entry["start_time"]
+
+        if class_day == current_day.lower():
+            if is_time_before(current_time, class_start):
+                # Returns only the closest class to the current time
+                if next_class is None or is_time_before(class_start, next_class["start_time"]):
+                    next_class = class_entry
+
+    return next_class
