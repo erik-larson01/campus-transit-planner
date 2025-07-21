@@ -1,3 +1,12 @@
+from typing import List, Dict, Any
+
+import pandas as pd
+
+import gtfs_parser as gtfs
+import utils.distance as dist
+import utils.time_utils as time
+import core.cli as cli
+
 # TODO: Implement full logic flow from earlier (find stop → route → trip)
 # 1. For each class in schedule, find nearby stops
 # 2. For each stop, find routes serving it
@@ -6,7 +15,7 @@
 # 5. Calculate journey time and pick best option
 # 6. Return summary for all classes
 
-def find_nearby_stops(lat: float, lng: float, stops_data, max_distance: int):
+def find_nearby_stops(lat: float, lng: float, stops_data: pd.DataFrame, max_distance: int) -> pd.DataFrame:
     """
     Find bus stops within max_distance meters of given coordinates.
     :param lat: latitude of reference point
@@ -63,12 +72,29 @@ def select_best_bus_option(boarding_options: list):
     """
     pass
 
-def plan_route(schedule: list, building_coords: dict, gtfs_data: dict):
+def plan_route(schedule: List[Dict[str, Any]], max_walking_distance: int, gtfs_data: dict) -> None:
     """
     Main planner to suggest best bus options for each class in schedule.
-    :param schedule: list of class dicts
-    :param building_coords: dict of building names to coordinates
+    :param schedule: list of class dicts with updated coordinate data
+    :param max_walking_distance: a user's max walking distance to any given bus stop
     :param gtfs_data: loaded GTFS dataset
     :return: dict of class times mapped to suggested bus options
     """
-    pass
+    stops_df = gtfs_data['stops']
+    trips_df = gtfs_data['trips']
+    stop_times_df = gtfs_data['stop_times']
+    calendar_df = gtfs_data['calendar']
+    routes_df = gtfs_data['routes']
+
+    for class_entry in schedule:
+        day = class_entry["day"]
+        lat = class_entry["lat"]
+        long = class_entry["long"]
+
+        # Get all unique stops on a given day via service_id -> trip_id -> stop_id
+        active_service_ids = gtfs.get_active_service_ids(day, calendar_df)
+        active_trip_ids = gtfs.filter_trips_by_service(trips_df, active_service_ids)
+        active_stop_ids = gtfs.get_unique_stops_for_trips(active_trip_ids, stop_times_df)
+        active_stops_df = gtfs.get_stop_details_for_stop_ids(active_stop_ids, stops_df)
+
+        nearby_stops_df = find_nearby_stops(lat, long, active_stops_df, max_walking_distance)
