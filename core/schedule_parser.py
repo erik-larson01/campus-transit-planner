@@ -6,7 +6,7 @@ import pandas as pd
 
 def load_schedule(csv_path: str = "data/class_schedule.txt") -> List[Dict[str, Any]]:
     """
-    Load user's class schedule from a CSV file into .
+    Load user's class schedule from a CSV file into a list of dicts per class.
     :param csv_path: path to schedule CSV file
     :return: list of class dicts with time, building, day info
     """
