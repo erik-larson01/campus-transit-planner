@@ -49,7 +49,7 @@ def filter_trips_by_service(trips_df: pd.DataFrame, active_services: List[str]) 
     :return: list of active trips via trip_ids
     """
     filtered = trips_df[trips_df["service_id"].isin(active_services)]
-    active_trips = filtered["trip_id"].tolist()
+    active_trips = filtered["trip_id"].unique().tolist()
     return active_trips
 
 def get_stop_times_for_trip(trip_id: str, stop_times_df: pd.DataFrame) -> List[str]:
