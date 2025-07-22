@@ -1,5 +1,3 @@
-from datetime import time
-
 def time_to_seconds(time_str: str) -> int:
     """
     Convert HH:MM:SS time string to total seconds.
@@ -53,13 +51,10 @@ def is_time_before(time_str1: str, time_str2: str) -> bool:
     :param time_str2: Second time string
     :return: True if time_str1 < time_str2, else False
     """
-    parts1 = time_str1.split(":")
-    t1 = time(int(parts1[0]), int(parts1[1]), int(parts1[2]))
+    seconds1 = time_to_seconds(time_str1)
+    seconds2 = time_to_seconds(time_str2)
 
-    parts2 = time_str2.split(":")
-    t2 = time(int(parts2[0]), int(parts2[1]), int(parts2[2]))
-
-    return t1 < t2
+    return seconds1 < seconds2
 
 def time_difference(start_time: str, end_time: str) -> int:
     """
