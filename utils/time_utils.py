@@ -23,6 +23,16 @@ def seconds_to_time(seconds: int) -> str:
     s = seconds % 60
     return f"{h:02}:{m:02}:{s:02}"
 
+def add_time(time_str: str, seconds: int) -> str:
+    """
+    Add seconds to a HH:MM:SS time string.
+    :param time_str: time string
+    :param seconds: seconds to add
+    :return: new time string
+    """
+    total_seconds = time_to_seconds(time_str) + seconds
+    return seconds_to_time(total_seconds)
+
 def subtract_time(time_str: str, seconds: int) -> str:
     """
     Subtract seconds from a HH:MM:SS time string.
