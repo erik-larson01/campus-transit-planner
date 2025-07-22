@@ -57,7 +57,7 @@ def init_google_client(api_key: str):
     """
     return googlemaps.Client(key=api_key)
 
-def get_walking_distance(gmaps_client, origin_lat: float, origin_lng: float, dest_lat: float, dest_lng: float) -> Dict[str, Any]:
+def get_walking_data(gmaps_client, origin_lat: float, origin_lng: float, dest_lat: float, dest_lng: float) -> Dict[str, Any]:
     """
     Use Google Maps API to get walking distance and time between two points.
     :param gmaps_client: Google Maps client object
