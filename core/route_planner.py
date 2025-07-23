@@ -264,30 +264,36 @@ def plan_route(schedule: List[Dict[str, Any]], max_walking_distance: float, gtfs
         if not next_class:
             continue
 
+
         # Get all unique and active (running) stops on a given day via service_id -> trip_id -> stop_id
+        print("Loading GTFS service, trip, and stop data...")
         active_service_ids = gtfs.get_active_service_ids(origin_day, calendar_df)
         active_trip_ids = gtfs.filter_trips_by_service(trips_df, active_service_ids)
         active_stop_ids = gtfs.get_unique_stops_for_trips(active_trip_ids, stop_times_df)
         active_stops_df = gtfs.get_stop_details_for_stop_ids(active_stop_ids, stops_df)
 
         # Get all candidate trips (trips that stop by the origin building and run on the same day as the class)
+        print(f"Locating nearby stops to {class_entry["building"]} for trip filtering...")
         origin_stops_df = find_nearby_stops(origin_lat, origin_long, active_stops_df, max_walking_distance)
         origin_stop_ids = origin_stops_df["stop_id"].unique().tolist()
         candidate_stop_times = stop_times_df[
             (stop_times_df["stop_id"].isin(origin_stop_ids)) & (stop_times_df["trip_id"].isin(active_trip_ids))
             ]
         candidate_trip_ids = candidate_stop_times["trip_id"].unique().tolist()
+        print(f"{len(candidate_trip_ids)} candidate trips that stop near {class_entry["building"]}.\n")
 
         # Filter candidate trip ids to those who have at least one nearby stop 5-45 minutes after the class
         earliest_arrival = 5 * 60
         latest_arrival = 45 * 60
+        print("Filtering trips by departure time (5–45 minutes after class ends)...")
         filtered_candidate_ids = filter_candidate_trip_ids(stop_times_df, origin_stop_ids, candidate_trip_ids,
                                                            origin_end_time, earliest_arrival, latest_arrival)
-
+        print(f"{len(filtered_candidate_ids)} candidate trips remain after time filtering.\n")
         # Find all valid trips that fit in the time difference between classes
+        print("Matching valid origin → destination stop combinations within each trip..")
         valid_trips = find_viable_trips(gmaps_client, filtered_candidate_ids, origin_stops_df, class_entry, next_class,
                                         stop_times_df, stops_df, max_walking_distance)
-
+        print(f"{len(valid_trips)} valid trip(s) found between classes.\n")
         results.append({
             "from_class": class_entry,
             "to_class": next_class,
