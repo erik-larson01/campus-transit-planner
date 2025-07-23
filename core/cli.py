@@ -160,18 +160,18 @@ def get_user_walking_preference() -> float:
     :return: a user's set max walking distance
     """
     MIN_DISTANCE = 10.0
-    MAX_DISTANCE = 2000.0
-    DEFAULT_DISTANCE = 800.0
+    MAX_DISTANCE = 1000.0
+    DEFAULT_DISTANCE = 500.0
 
     print("To help filter bus stops based on your preferences, how far are you willing to walk to bus stops?:")
     print("- 400m (5 min walk)")
+    print("- 600m (7-8 min walk)")
     print("- 800m (10 min walk)")
-    print("- 1200m (15 min walk)")
-    print("- 1600m (20 min walk)")
+    print("- 1000m (12-13 min walk)")
 
     while True:
         try:
-            user_input = input("Enter distance in meters (or press Enter for 800m default): ").strip()
+            user_input = input("Enter distance in meters (or press Enter for 500m default): ").strip()
 
             if not user_input:
                 return 800.0
