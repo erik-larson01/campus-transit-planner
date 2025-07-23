@@ -12,6 +12,7 @@ import core.schedule_parser as parser
 load_dotenv()
 api_key = os.getenv("GOOGLE_API_KEY")
 
+
 def find_nearby_stops(building_lat: float, building_long: float, stops_data: pd.DataFrame,
                       max_distance: float) -> pd.DataFrame:
     """
@@ -32,9 +33,46 @@ def find_nearby_stops(building_lat: float, building_long: float, stops_data: pd.
 
     return pd.DataFrame(nearby_rows)
 
-def find_viable_trips(gmaps_client, candidate_trip_ids: List[str], origin_stops_df: pd.DataFrame, origin_class: Dict[str, Any],
-                      destination_class: Dict[str, Any], stop_times_df: pd.DataFrame, stops_df: pd.DataFrame,
-                      max_walking_distance: float) -> List[Dict[str, Any]]:
+
+def filter_candidate_trip_ids(stop_times_df: pd.DataFrame, origin_stop_ids: List[str], trip_ids: List[str],
+                              origin_class_end_time: str, earliest_offset_sec: int = 5 * 60,
+                              latest_offset_sec: int = 45 * 60) -> List[str]:
+    """
+    Filters candidate trip_ids to only those that have a stop in origin_stop_ids and
+    depart within a realistic time window after the origin class ends.
+    :param stop_times_df: stop_times.txt DataFrame
+    :param origin_stop_ids: list of stop_ids near origin building
+    :param trip_ids: all active trip_ids for the day
+    :param origin_class_end_time: class end time string
+    :param earliest_offset_sec: min seconds after class ends (default: 5 minutes)
+    :param latest_offset_sec: max seconds after class ends (default: 45 minutes)
+    :return: list of trip_ids that meet the time window filter
+    """
+
+    pruned_trip_ids = set()
+    earliest_departure = time.add_time(origin_class_end_time, earliest_offset_sec)
+    latest_departure = time.add_time(origin_class_end_time, latest_offset_sec)
+
+    for trip_id in trip_ids:
+        trip_stops = stop_times_df[stop_times_df["trip_id"] == trip_id].sort_values("stop_sequence")
+
+        for _, row in trip_stops.iterrows():
+            stop_id = row["stop_id"]
+            departure_time = row["departure_time"]
+
+            if (
+                    stop_id in origin_stop_ids and
+                    time.is_time_before(earliest_departure, departure_time) and
+                    time.is_time_before(departure_time, latest_departure)
+            ):
+                pruned_trip_ids.add(trip_id)
+                break
+
+    return list(pruned_trip_ids)
+
+def find_viable_trips(gmaps_client, candidate_trip_ids: List[str], origin_stops_df: pd.DataFrame,
+                      origin_class: Dict[str, Any], destination_class: Dict[str, Any], stop_times_df: pd.DataFrame,
+                      stops_df: pd.DataFrame, max_walking_distance: float) -> List[Dict[str, Any]]:
     """
     Filters candidate trips based on timing and stop proximity to both origin and destination to create a list of
     possible trips for the user to take from an origin class building to a destination
@@ -85,18 +123,18 @@ def find_viable_trips(gmaps_client, candidate_trip_ids: List[str], origin_stops_
 
                 # Get google walking data to check if a user can board on time
                 walk_result = dist.get_walking_data(gmaps_client, origin_lat, origin_long,
-                                                                          stop_lat, stop_long)
+                                                    stop_lat, stop_long)
                 if not walk_result:
                     continue
 
                 walking_time_to_boarding_stop = walk_result["duration_value"]
-                walking_dist_to_boarding_stop = walk_result["distance_text"] # For CLI output
+                walking_dist_to_boarding_stop = walk_result["distance_text"]  # For CLI output
 
                 arrival_at_stop = time.add_time(origin_class_end, walking_time_to_boarding_stop)
 
                 # Check if the user can actually arrive to the stop on time
                 if not (time.is_time_before(arrival_at_stop, departure_time)):
-                    continue # Not enough time to walk to the stop
+                    continue  # Not enough time to walk to the stop
 
                 # Origin/boarding stop is now valid, so check for destination stops where the entire trip fits
                 for i in range(index + 1, len(trip_stop_times_df)):
@@ -112,13 +150,14 @@ def find_viable_trips(gmaps_client, candidate_trip_ids: List[str], origin_stops_
                     dest_stop_long = dest_stop_info["stop_lon"].values[0]
 
                     # Check if the user stop is within walking distance to the destination class building
-                    dist_to_dest_building = dist.haversine_distance_meters(dest_lat, dest_lng, dest_stop_lat, dest_stop_long)
+                    dist_to_dest_building = dist.haversine_distance_meters(dest_lat, dest_lng, dest_stop_lat,
+                                                                           dest_stop_long)
                     if dist_to_dest_building > max_walking_distance:
                         continue
 
                     # Destination stop is within walking distance, so now check if the whole trip fits
                     dest_walk_result = dist.get_walking_data(gmaps_client, dest_stop_lat, dest_stop_long, dest_lat,
-                                                                dest_lng)
+                                                             dest_lng)
                     if not dest_walk_result:
                         continue
 
@@ -179,7 +218,6 @@ def plan_route(schedule: List[Dict[str, Any]], max_walking_distance: float, gtfs
     trips_df = gtfs_data['trips']
     stop_times_df = gtfs_data['stop_times']
     calendar_df = gtfs_data['calendar']
-    routes_df = gtfs_data['routes']
 
     # Sort schedule by days and then class time for easier output
     DAY_ORDER = ["monday", "tuesday", "wednesday", "thursday", "friday"]
@@ -197,6 +235,7 @@ def plan_route(schedule: List[Dict[str, Any]], max_walking_distance: float, gtfs
         origin_lat = class_entry["lat"]
         origin_long = class_entry["long"]
         origin_start_time = class_entry["start_time"]
+        origin_end_time  = class_entry["end_time"]
 
         # Ensure there is a next class to find a trip to before planning a route
         next_class = parser.find_next_class_for_same_day(schedule, origin_day, origin_start_time)
@@ -217,9 +256,15 @@ def plan_route(schedule: List[Dict[str, Any]], max_walking_distance: float, gtfs
             ]
         candidate_trip_ids = candidate_stop_times["trip_id"].unique().tolist()
 
-        valid_trips = find_viable_trips(gmaps_client,candidate_trip_ids, origin_stops_df, class_entry, next_class,
-                                        stop_times_df, stops_df, max_walking_distance)
+        # Filter candidate trip ids to those who have at least one nearby stop 5-45 minutes after the class
+        earliest_arrival = 5 * 60
+        latest_arrival = 45 * 60
+        filtered_candidate_ids = filter_candidate_trip_ids(stop_times_df, origin_stop_ids, candidate_trip_ids,
+                                                           origin_end_time, earliest_arrival, latest_arrival)
 
+        # Find all valid trips that fit in the time difference between classes
+        valid_trips = find_viable_trips(gmaps_client, filtered_candidate_ids, origin_stops_df, class_entry, next_class,
+                                        stop_times_df, stops_df, max_walking_distance)
 
         results.append({
             "from_class": class_entry,
