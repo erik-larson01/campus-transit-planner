@@ -99,7 +99,11 @@ def find_viable_trips(gmaps_client, candidate_trip_ids: List[str], origin_stops_
     # For all possible candidate trips:
     for candidate_id in candidate_trip_ids:
         # Get all stop times for that trip sorted by stop sequence
-        trip_stop_times_df = stop_times_df[stop_times_df["trip_id"] == candidate_id].sort_values("stop_sequence")
+        trip_stop_times_df = stop_times_df[stop_times_df["trip_id"] == candidate_id].sort_values(
+            "stop_sequence").reset_index(drop=True)
+
+        if len(trip_stop_times_df) == 0:
+            continue
 
         # For all of those stops:
         for index, row in trip_stop_times_df.iterrows():
@@ -110,8 +114,10 @@ def find_viable_trips(gmaps_client, candidate_trip_ids: List[str], origin_stops_
                 departure_time = row["departure_time"]
 
                 # Ensure the stop time fits between the two classes
-                if not (time.is_time_before(origin_class_end, departure_time) and
-                        time.is_time_before(departure_time, destination_class["start_time"])):
+                time_check_1 = time.is_time_before(origin_class_end, departure_time)
+                time_check_2 = time.is_time_before(departure_time, destination_class["start_time"])
+
+                if not (time_check_1 and time_check_2):
                     continue
 
                 stop_info = stops_df[stops_df["stop_id"] == stop_id]
@@ -129,12 +135,20 @@ def find_viable_trips(gmaps_client, candidate_trip_ids: List[str], origin_stops_
 
                 walking_time_to_boarding_stop = walk_result["duration_value"]
                 walking_dist_to_boarding_stop = walk_result["distance_text"]  # For CLI output
+                walk_time_in_meters = walk_result["distance_value"]
+
+                if walk_time_in_meters > max_walking_distance:
+                    continue
 
                 arrival_at_stop = time.add_time(origin_class_end, walking_time_to_boarding_stop)
 
                 # Check if the user can actually arrive to the stop on time
                 if not (time.is_time_before(arrival_at_stop, departure_time)):
                     continue  # Not enough time to walk to the stop
+
+                # Check if that stop is the last one before looping
+                if index + 1 >= len(trip_stop_times_df):
+                    continue
 
                 # Origin/boarding stop is now valid, so check for destination stops where the entire trip fits
                 for i in range(index + 1, len(trip_stop_times_df)):
@@ -144,6 +158,10 @@ def find_viable_trips(gmaps_client, candidate_trip_ids: List[str], origin_stops_
 
                     dest_stop_info = stops_df[stops_df["stop_id"] == dest_stop_id]
                     if dest_stop_info.empty:
+                        continue
+
+                    # To reduce API calls, check if the destination stop is before the class start time
+                    if not time.is_time_before(dest_arrival_time, dest_class_start):
                         continue
 
                     dest_stop_lat = dest_stop_info["stop_lat"].values[0]
@@ -163,6 +181,10 @@ def find_viable_trips(gmaps_client, candidate_trip_ids: List[str], origin_stops_
 
                     walk_time_to_dest = dest_walk_result["duration_value"]
                     walk_dist_to_dest = dest_walk_result["distance_text"]
+                    walk_time_in_meters = dest_walk_result["distance_value"]
+
+                    if walk_time_in_meters > max_walking_distance:
+                        continue
 
                     arrival_at_building = time.add_time(dest_arrival_time, walk_time_to_dest)
 
