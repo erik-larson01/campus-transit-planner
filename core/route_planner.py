@@ -1,5 +1,5 @@
 import os
-from typing import List, Dict, Any
+from typing import List, Dict, Any, final
 import pandas as pd
 from dotenv import load_dotenv
 
@@ -198,8 +198,8 @@ def find_viable_trips(gmaps_client, candidate_trip_ids: List[str], origin_stops_
                     waiting_time = time.time_difference(arrival_at_stop, departure_time)
                     total_ride_time = time.time_difference(departure_time, dest_arrival_time)
                     total_walk_time = walking_time_to_boarding_stop + walk_time_to_dest
-                    total_travel_time = total_walk_time + total_ride_time + waiting_time
-
+                    total_travel_time = total_walk_time + total_ride_time
+                    total_travel_time_with_waiting = total_travel_time + waiting_time
                     # Add stop descriptions for cli output
                     origin_stop_name = stop_info["stop_name"].values[0]
                     dest_stop_name = dest_stop_info["stop_name"].values[0]
@@ -226,17 +226,33 @@ def find_viable_trips(gmaps_client, candidate_trip_ids: List[str], origin_stops_
                         "total_ride_time_sec": total_ride_time,
                         "total_walk_time_sec": total_walk_time,
                         "total_travel_time_sec": total_travel_time,
+                        "total_time_with_waiting": total_travel_time_with_waiting,
                         "arrive_at_building_time": arrival_at_building
                     })
     return valid_trips
 
-def select_best_bus_option(boarding_options: list):
+def select_best_trip(valid_trips: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
-    Select the best bus option based on journey time and departure time.
-    :param boarding_options: list of boarding options with journey times
+    Select the best trip(s) and bus option based on minimum trip time and earliest arrival at destination
+    :param valid_trips: list of valid trips a user can take
     :return: best bus option dict or None if no options
     """
-    pass
+    final_trips = []
+
+    if not valid_trips:
+        return []
+
+    earliest_arrival = min(valid_trips, key= lambda trip: trip["arrive_at_building_time"])
+    shortest_trip = min(valid_trips, key=lambda trip: trip["total_travel_time_sec"])
+
+    if earliest_arrival == shortest_trip:
+        print("Earliest arrival trip and shortest travel time trip are the same — presenting the best single option.")
+        final_trips.append(earliest_arrival)
+    else:
+        final_trips.append(earliest_arrival)
+        final_trips.append(shortest_trip)
+
+    return final_trips
 
 
 def plan_route(schedule: List[Dict[str, Any]], max_walking_distance: float, gtfs_data: dict) -> List[Dict[str, Any]]:
@@ -302,14 +318,16 @@ def plan_route(schedule: List[Dict[str, Any]], max_walking_distance: float, gtfs
         print(f"{len(filtered_candidate_ids)} candidate trips remain after time filtering.\n")
 
         # Find all valid trips that fit in the time difference between classes
-        print("Matching valid origin → destination stop combinations within each trip..")
+        print("Matching valid origin → destination stop combinations within each trip...")
         valid_trips = find_viable_trips(gmaps_client, filtered_candidate_ids, origin_stops_df, class_entry, next_class,
                                         stop_times_df, stops_df, trips_df, routes_df, max_walking_distance)
-        print(f"{len(valid_trips)} valid trip(s) found between classes.\n")
 
+        # Finding best trips via arrival time and trip length
+        print(f"Evaluating {len(valid_trips)} viable trip options to find earliest arrival and shortest travel time...")
+        final_trips = select_best_trip(valid_trips)
         results.append({
             "from_class": class_entry,
             "to_class": next_class,
-            "valid_trips": valid_trips
+            "valid_trips": final_trips
         })
     return results
