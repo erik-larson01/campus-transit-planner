@@ -195,11 +195,9 @@ def find_viable_trips(gmaps_client, candidate_trip_ids: List[str], origin_stops_
                         continue
 
                     # If they can, the entire trip fits and is valid
-                    waiting_time = time.time_difference(arrival_at_stop, departure_time)
                     total_ride_time = time.time_difference(departure_time, dest_arrival_time)
                     total_walk_time = walking_time_to_boarding_stop + walk_time_to_dest
                     total_travel_time = total_walk_time + total_ride_time
-                    total_travel_time_with_waiting = total_travel_time + waiting_time
                     # Add stop descriptions for cli output
                     origin_stop_name = stop_info["stop_name"].values[0]
                     dest_stop_name = dest_stop_info["stop_name"].values[0]
@@ -216,7 +214,6 @@ def find_viable_trips(gmaps_client, candidate_trip_ids: List[str], origin_stops_
                         "time_to_leave": leave_time,
                         "origin_departure_time": departure_time,
                         "origin_walk_time": walking_time_to_boarding_stop,
-                        "waiting_time_at_origin": waiting_time,
                         "origin_walk_distance": walking_dist_to_boarding_stop,
                         "destination_stop_id": dest_stop_id,
                         "destination_stop_name": dest_stop_name,
@@ -226,7 +223,6 @@ def find_viable_trips(gmaps_client, candidate_trip_ids: List[str], origin_stops_
                         "total_ride_time_sec": total_ride_time,
                         "total_walk_time_sec": total_walk_time,
                         "total_travel_time_sec": total_travel_time,
-                        "total_time_with_waiting": total_travel_time_with_waiting,
                         "arrive_at_building_time": arrival_at_building
                     })
     return valid_trips

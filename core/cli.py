@@ -213,22 +213,12 @@ def prompt_user_to_select_trip(final_trips: List[Dict[str, Any]], class_entry: D
         print(f"  Leave {class_entry['building']} by: {trip['time_to_leave']}")
         print(f"  Arrive at {next_class['building']} by: {trip['arrive_at_building_time']}")
         print(f"  Boarding Stop: {trip['origin_stop_name']}")
-        print(f"    • Departs at: {trip['origin_departure_time']}")
+        print(f"    • Departs from stop at: {trip['origin_departure_time']}")
         print(f"    • Walk Time: {trip['origin_walk_time'] // 60} min, Distance: {trip['origin_walk_distance']}")
-
-        if idx == 1:
-            print(f"    • Wait Time at Stop: {trip['waiting_time_at_origin'] // 60} min")
-        else:
-            print(f"    • Wait Time at Stop: 0 min")
-
         print(f"  Destination Stop: {trip['destination_stop_name']}")
-        print(f"    • Arrives at: {trip['destination_arrival_time']}")
+        print(f"    • Arrives to stop at: {trip['destination_arrival_time']}")
         print(f"    • Walk Time: {trip['dest_walk_time_sec'] // 60} min, Distance: {trip['dest_walk_distance']}")
-
-        if idx == 1:  # Earliest arrival option
-            print(f"  Total Travel Time: {trip['total_time_with_waiting'] // 60} min")
-        else:  # Shortest travel time option
-            print(f"  Total Travel Time: {trip['total_travel_time_sec'] // 60} min")
+        print(f"  Total Travel Time: {trip['total_travel_time_sec'] // 60} min")
 
     if len(final_trips) == 1:
         print("\nOnly one optimal trip found. Automatically selected.")
