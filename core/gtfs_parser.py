@@ -116,9 +116,9 @@ def get_route_for_trip(trip_id: str, trips_df: pd.DataFrame, routes_df: pd.DataF
     route_long_name = route_row["route_long_name"].item()
 
     parts = [f"{route_long_name}"]
-    if trip_headsign:
-        parts.append(trip_headsign)
     if trip_direction:
-        parts.append(trip_direction)
+        parts.append(f"({trip_direction})")
+    if trip_headsign:
+        parts.append(f"- {trip_headsign}")
     full_output = " ".join(parts)
     return full_output
