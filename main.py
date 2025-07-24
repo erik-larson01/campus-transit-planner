@@ -1,7 +1,8 @@
 import core.cli as cli
 import core.schedule_parser as parser
 import core.buildings as buildings_util
-from core.gtfs_parser import load_gtfs_files
+import core.gtfs_parser as gtfs
+import core.route_planner as planner
 def main():
     print("=== Campus Transit Planner ===")
     print()
@@ -12,8 +13,9 @@ def main():
     final_schedule = parser.update_schedule_with_coordinates(validated_schedule, buildings_data)
     max_walking_dist = cli.get_user_walking_preference()
     print(f"Max walking distance of {max_walking_dist}m set.")
-    gtfs_dict = load_gtfs_files()
+    gtfs_dict = gtfs.load_gtfs_files()
     print("\nReady to begin transit planning...\n")
+    results = planner.plan_route(final_schedule, max_walking_dist, gtfs_dict)
 
 if __name__ == "__main__":
     main()
