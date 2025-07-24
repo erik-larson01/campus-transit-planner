@@ -6,7 +6,6 @@ from dotenv import load_dotenv
 import core.gtfs_parser as gtfs
 import utils.distance as dist
 import utils.time_utils as time
-import core.cli as cli
 import core.schedule_parser as parser
 
 load_dotenv()
@@ -49,7 +48,7 @@ def filter_candidate_trip_ids(stop_times_df: pd.DataFrame, origin_stop_ids: List
     :return: list of trip_ids that meet the time window filter
     """
 
-    pruned_trip_ids = set()
+    filtered_ids = set()
     earliest_departure = time.add_time(origin_class_end_time, earliest_offset_sec)
     latest_departure = time.add_time(origin_class_end_time, latest_offset_sec)
 
@@ -65,14 +64,15 @@ def filter_candidate_trip_ids(stop_times_df: pd.DataFrame, origin_stop_ids: List
                     time.is_time_before(earliest_departure, departure_time) and
                     time.is_time_before(departure_time, latest_departure)
             ):
-                pruned_trip_ids.add(trip_id)
+                filtered_ids.add(trip_id)
                 break
 
-    return list(pruned_trip_ids)
+    return list(filtered_ids)
 
 def find_viable_trips(gmaps_client, candidate_trip_ids: List[str], origin_stops_df: pd.DataFrame,
                       origin_class: Dict[str, Any], destination_class: Dict[str, Any], stop_times_df: pd.DataFrame,
-                      stops_df: pd.DataFrame, max_walking_distance: float) -> List[Dict[str, Any]]:
+                      stops_df: pd.DataFrame, trips_df: pd.DataFrame, routes_df: pd.DataFrame,
+                      max_walking_distance: float) -> List[Dict[str, Any]]:
     """
     Filters candidate trips based on timing and stop proximity to both origin and destination to create a list of
     possible trips for the user to take from an origin class building to a destination
@@ -83,6 +83,8 @@ def find_viable_trips(gmaps_client, candidate_trip_ids: List[str], origin_stops_
     :param destination_class: a dict of coordinate data of a user's destination
     :param stop_times_df: stop_times.txt DataFrame
     :param stops_df: stops.txt DataFrame
+    :param trips_df: trips.txt DataFrame
+    :param routes_df: routes.txt DataFrame
     :param max_walking_distance: user's max walking distance to a stop
     :return:
     """
@@ -193,20 +195,28 @@ def find_viable_trips(gmaps_client, candidate_trip_ids: List[str], origin_stops_
                         continue
 
                     # If they can, the entire trip fits and is valid
+                    waiting_time = time.time_difference(arrival_at_stop, departure_time)
                     total_ride_time = time.time_difference(departure_time, dest_arrival_time)
                     total_walk_time = walking_time_to_boarding_stop + walk_time_to_dest
-                    total_travel_time = total_walk_time + total_ride_time
+                    total_travel_time = total_walk_time + total_ride_time + waiting_time
 
                     # Add stop descriptions for cli output
                     origin_stop_name = stop_info["stop_name"].values[0]
                     dest_stop_name = dest_stop_info["stop_name"].values[0]
+                    leave_time = time.subtract_time(departure_time, walking_time_to_boarding_stop)
+
+                    # Add route description
+                    route_name = gtfs.get_route_for_trip(candidate_id, trips_df, routes_df)
 
                     valid_trips.append({
                         "trip_id": candidate_id,
+                        "route_name": route_name,
                         "origin_stop_id": stop_id,
                         "origin_stop_name": origin_stop_name,
+                        "time_to_leave": leave_time,
                         "origin_departure_time": departure_time,
                         "origin_walk_time": walking_time_to_boarding_stop,
+                        "waiting_time_at_origin": waiting_time,
                         "origin_walk_distance": walking_dist_to_boarding_stop,
                         "destination_stop_id": dest_stop_id,
                         "destination_stop_name": dest_stop_name,
@@ -215,7 +225,8 @@ def find_viable_trips(gmaps_client, candidate_trip_ids: List[str], origin_stops_
                         "dest_walk_distance": walk_dist_to_dest,
                         "total_ride_time_sec": total_ride_time,
                         "total_walk_time_sec": total_walk_time,
-                        "total_travel_time_sec": total_travel_time
+                        "total_travel_time_sec": total_travel_time,
+                        "arrive_at_building_time": arrival_at_building
                     })
     return valid_trips
 
@@ -240,11 +251,12 @@ def plan_route(schedule: List[Dict[str, Any]], max_walking_distance: float, gtfs
     trips_df = gtfs_data['trips']
     stop_times_df = gtfs_data['stop_times']
     calendar_df = gtfs_data['calendar']
+    routes_df = gtfs_data['routes']
 
     # Sort schedule by days and then class time for easier output
-    DAY_ORDER = ["monday", "tuesday", "wednesday", "thursday", "friday"]
+    day_order = ["monday", "tuesday", "wednesday", "thursday", "friday"]
     schedule.sort(
-        key=lambda entry: (DAY_ORDER.index(entry["day"].lower()), entry["start_time"])
+        key=lambda entry: (day_order.index(entry["day"].lower()), entry["start_time"])
     )
 
     # Create gmaps client
@@ -263,7 +275,6 @@ def plan_route(schedule: List[Dict[str, Any]], max_walking_distance: float, gtfs
         next_class = parser.find_next_class_for_same_day(schedule, origin_day, origin_start_time)
         if not next_class:
             continue
-
 
         # Get all unique and active (running) stops on a given day via service_id -> trip_id -> stop_id
         print("Loading GTFS service, trip, and stop data...")
@@ -289,11 +300,13 @@ def plan_route(schedule: List[Dict[str, Any]], max_walking_distance: float, gtfs
         filtered_candidate_ids = filter_candidate_trip_ids(stop_times_df, origin_stop_ids, candidate_trip_ids,
                                                            origin_end_time, earliest_arrival, latest_arrival)
         print(f"{len(filtered_candidate_ids)} candidate trips remain after time filtering.\n")
+
         # Find all valid trips that fit in the time difference between classes
         print("Matching valid origin → destination stop combinations within each trip..")
         valid_trips = find_viable_trips(gmaps_client, filtered_candidate_ids, origin_stops_df, class_entry, next_class,
-                                        stop_times_df, stops_df, max_walking_distance)
+                                        stop_times_df, stops_df, trips_df, routes_df, max_walking_distance)
         print(f"{len(valid_trips)} valid trip(s) found between classes.\n")
+
         results.append({
             "from_class": class_entry,
             "to_class": next_class,
