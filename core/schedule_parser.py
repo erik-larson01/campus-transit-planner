@@ -1,7 +1,7 @@
 import sys
 from typing import List, Dict, Any, Optional
 from utils.time_utils import is_time_before
-from core.buildings import get_building_coordinates
+from core.building_matcher import get_building_coordinates
 import pandas as pd
 
 def load_schedule(csv_path: str = "data/class_schedule.txt") -> List[Dict[str, Any]]:
