@@ -174,7 +174,7 @@ def get_user_walking_preference() -> float:
             user_input = input("Enter distance in meters (or press Enter for 500m default): ").strip()
 
             if not user_input:
-                return 800.0
+                return 500.0
 
             distance = float(user_input)
 
