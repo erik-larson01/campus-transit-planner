@@ -1,7 +1,7 @@
 import sys
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import core.schedule_parser as schedule_parser
-import core.buildings as buildings_util
+import core.building_matcher as buildings
 
 def load_and_validate_schedule() -> List[Dict[str, any]]:
     """
@@ -53,7 +53,7 @@ def match_and_confirm_buildings(user_buildings: List[str], buildings_data: List[
     :return: A name mapping dict of {user_input_name -> official_building_name}.
     """
     print("Mapping user building names to official building names in buildings.geojson...")
-    match_results = buildings_util.match_building_names(user_buildings, buildings_data)
+    match_results = buildings.match_building_names(user_buildings, buildings_data)
 
     exact_matches = match_results["exact_matches"]
     best_matches = match_results["best_matches"]
@@ -68,7 +68,7 @@ def match_and_confirm_buildings(user_buildings: List[str], buildings_data: List[
 
     # Prompt for best fuzzy matches
     for user_input, best_match in best_matches.items():
-        print(f"\nDid you mean '{best_match}' for '{user_input}'? (Y/n): ")
+        print(f"\nDid you mean '{best_match}' for '{user_input.strip()}'? (Y/n): ")
         choice = input().strip().lower()
 
         if choice in ("y", "yes", ""):
@@ -124,7 +124,7 @@ def run_schedule_validation() -> List[Dict[str, Any]]:
     validated_schedule_data = load_and_validate_schedule()
     print(f"Loaded {len(validated_schedule_data)} valid schedule entries.")
     try:
-        buildings_data = buildings_util.load_buildings()
+        buildings_data = buildings.load_buildings()
         print(f"Loaded {len(buildings_data)} official campus buildings.")
         print()
     except FileNotFoundError as e:
@@ -190,4 +190,57 @@ def get_user_walking_preference() -> float:
 
         except ValueError:
             print("Please enter a valid number or press Enter for default.")
+
+def prompt_user_to_select_trip(final_trips: List[Dict[str, Any]], class_entry: Dict[str, Any],
+                               next_class: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """
+    Display 1-2 best trip options to the user and prompt them to select one.
+    :param final_trips: list of 1 or 2 trip dicts
+    :param class_entry: dict of origin class data
+    :param next_class: dict of next class data
+    :return: selected trip dict or None
+    """
+    if not final_trips:
+        print("\nNo valid trip options found between classes.")
+        return None
+
+    print("\n--- Best Trip Option(s) ---")
+
+    for idx, trip in enumerate(final_trips, start=1):
+        strategy = "Earliest Arrival" if idx == 1 else "Shortest Travel Time"
+        print(f"\nOption {idx}: {strategy}")
+        print(f"  Route: {trip['route_name']}")
+        print(f"  Leave {class_entry['building']} by: {trip['time_to_leave']}")
+        print(f"  Arrive at {next_class['building']} by: {trip['arrive_at_building_time']}")
+        print(f"  Boarding Stop: {trip['origin_stop_name']}")
+        print(f"    • Departs at: {trip['origin_departure_time']}")
+        print(f"    • Walk Time: {trip['origin_walk_time'] // 60} min, Distance: {trip['origin_walk_distance']}")
+
+        if idx == 1:
+            print(f"    • Wait Time at Stop: {trip['waiting_time_at_origin'] // 60} min")
+        else:
+            print(f"    • Wait Time at Stop: 0 min")
+
+        print(f"  Destination Stop: {trip['destination_stop_name']}")
+        print(f"    • Arrives at: {trip['destination_arrival_time']}")
+        print(f"    • Walk Time: {trip['dest_walk_time_sec'] // 60} min, Distance: {trip['dest_walk_distance']}")
+
+        if idx == 1:  # Earliest arrival option
+            print(f"  Total Travel Time: {trip['total_time_with_waiting'] // 60} min")
+        else:  # Shortest travel time option
+            print(f"  Total Travel Time: {trip['total_travel_time_sec'] // 60} min")
+
+    if len(final_trips) == 1:
+        print("\nOnly one optimal trip found. Automatically selected.")
+        return final_trips[0]
+
+    # Prompt user to choose one of the two
+    while True:
+        choice = input("\nSelect your preferred option (1 or 2): ").strip()
+        if choice in {"1", "2"}:
+            selected = final_trips[int(choice) - 1]
+            print(f"\nYou selected Option {choice}: {selected['route_name']}.")
+            return selected
+        else:
+            print("Invalid input. Please enter 1 or 2.")
 

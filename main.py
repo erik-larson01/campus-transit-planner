@@ -1,6 +1,6 @@
 import core.cli as cli
 import core.schedule_parser as parser
-import core.buildings as buildings_util
+import core.building_matcher as buildings_util
 import core.gtfs_parser as gtfs
 import core.route_planner as planner
 def main():

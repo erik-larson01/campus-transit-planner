@@ -2,7 +2,7 @@ import os
 from typing import List, Dict, Any, final
 import pandas as pd
 from dotenv import load_dotenv
-
+import core.cli as cli
 import core.gtfs_parser as gtfs
 import utils.distance as dist
 import utils.time_utils as time
@@ -263,6 +263,7 @@ def plan_route(schedule: List[Dict[str, Any]], max_walking_distance: float, gtfs
     :param gtfs_data: loaded GTFS dataset
     :return: dict of class times mapped to suggested bus options
     """
+    print("Loading GTFS service, trip, and stop data...")
     stops_df = gtfs_data['stops']
     trips_df = gtfs_data['trips']
     stop_times_df = gtfs_data['stop_times']
@@ -292,8 +293,10 @@ def plan_route(schedule: List[Dict[str, Any]], max_walking_distance: float, gtfs
         if not next_class:
             continue
 
+        print(f"\nFinding bus routes from {class_entry["building"]} to {next_class["building"]} on {origin_day.capitalize()}...\n")
+
         # Get all unique and active (running) stops on a given day via service_id -> trip_id -> stop_id
-        print("Loading GTFS service, trip, and stop data...")
+        print(f"Fetching GTFS data for {origin_day.capitalize()}...")
         active_service_ids = gtfs.get_active_service_ids(origin_day, calendar_df)
         active_trip_ids = gtfs.filter_trips_by_service(trips_df, active_service_ids)
         active_stop_ids = gtfs.get_unique_stops_for_trips(active_trip_ids, stop_times_df)
@@ -307,27 +310,36 @@ def plan_route(schedule: List[Dict[str, Any]], max_walking_distance: float, gtfs
             (stop_times_df["stop_id"].isin(origin_stop_ids)) & (stop_times_df["trip_id"].isin(active_trip_ids))
             ]
         candidate_trip_ids = candidate_stop_times["trip_id"].unique().tolist()
-        print(f"{len(candidate_trip_ids)} candidate trips that stop near {class_entry["building"]}.\n")
+        print(f"{len(candidate_trip_ids)} bus routes that stop near {class_entry["building"]}.\n")
 
         # Filter candidate trip ids to those who have at least one nearby stop 5-45 minutes after the class
         earliest_arrival = 5 * 60
         latest_arrival = 45 * 60
-        print("Filtering trips by departure time (5–45 minutes after class ends)...")
+        print("Filtering routes by departure time (5–45 minutes after class ends)...")
         filtered_candidate_ids = filter_candidate_trip_ids(stop_times_df, origin_stop_ids, candidate_trip_ids,
                                                            origin_end_time, earliest_arrival, latest_arrival)
-        print(f"{len(filtered_candidate_ids)} candidate trips remain after time filtering.\n")
+        print(f"{len(filtered_candidate_ids)} bus routes remain after time filtering.\n")
 
         # Find all valid trips that fit in the time difference between classes
-        print("Matching valid origin → destination stop combinations within each trip...")
+        print("Matching valid origin → destination stop combinations within each route...")
         valid_trips = find_viable_trips(gmaps_client, filtered_candidate_ids, origin_stops_df, class_entry, next_class,
                                         stop_times_df, stops_df, trips_df, routes_df, max_walking_distance)
 
         # Finding best trips via arrival time and trip length
         print(f"Evaluating {len(valid_trips)} viable trip options to find earliest arrival and shortest travel time...")
         final_trips = select_best_trip(valid_trips)
+        print(f"{len(final_trips)} trip option(s) selected based on earliest arrival and shortest travel time.")
+
+
+        print("\nSchedule:")
+        print(f"  • {class_entry['course_code'] } ends at: {class_entry['end_time']}")
+        print(f"  • {next_class['course_code']} starts at: {next_class['start_time']}")
+        best_possible_trip = cli.prompt_user_to_select_trip(final_trips, class_entry, next_class)
+
         results.append({
             "from_class": class_entry,
             "to_class": next_class,
-            "valid_trips": final_trips
+            "best_trip": best_possible_trip
         })
+
     return results
