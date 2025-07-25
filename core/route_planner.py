@@ -207,6 +207,7 @@ def find_viable_trips(gmaps_client, candidate_trip_ids: List[str], origin_stops_
                     route_name = gtfs.get_route_for_trip(candidate_id, trips_df, routes_df)
 
                     valid_trips.append({
+                        "mode": "bus",
                         "trip_id": candidate_id,
                         "route_name": route_name,
                         "origin_stop_id": stop_id,
@@ -330,7 +331,10 @@ def plan_route(schedule: List[Dict[str, Any]], max_walking_distance: float, gtfs
         print("\nSchedule:")
         print(f"  • {class_entry['course_code'] } ends at: {class_entry['end_time']}")
         print(f"  • {next_class['course_code']} starts at: {next_class['start_time']}")
-        best_possible_trip = cli.prompt_user_to_select_trip(final_trips, class_entry, next_class)
+
+        # Add simply walking as an option and ask user to pick between the 2-3 options
+        walking_option_data = dist.get_walking_data(gmaps_client, origin_lat, origin_long, next_class["lat"], next_class["long"])
+        best_possible_trip = cli.prompt_user_to_select_trip(final_trips, class_entry, next_class, walking_option_data)
 
         results.append({
             "from_class": class_entry,

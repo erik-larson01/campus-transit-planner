@@ -2,6 +2,7 @@ import sys
 from typing import List, Dict, Any, Optional
 import core.schedule_parser as schedule_parser
 import core.building_matcher as buildings
+import utils.time_utils as time
 
 def load_and_validate_schedule() -> List[Dict[str, any]]:
     """
@@ -192,12 +193,13 @@ def get_user_walking_preference() -> float:
             print("Please enter a valid number or press Enter for default.")
 
 def prompt_user_to_select_trip(final_trips: List[Dict[str, Any]], class_entry: Dict[str, Any],
-                               next_class: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+                               next_class: Dict[str, Any], walking_option_data) -> Optional[Dict[str, Any]]:
     """
     Display 1-2 best trip options to the user and prompt them to select one.
     :param final_trips: list of 1 or 2 trip dicts
     :param class_entry: dict of origin class data
     :param next_class: dict of next class data
+    :param walking_option_data: google API data if a user simply walked between classes
     :return: selected trip dict or None
     """
     if not final_trips:
@@ -220,17 +222,44 @@ def prompt_user_to_select_trip(final_trips: List[Dict[str, Any]], class_entry: D
         print(f"    • Walk Time: {trip['dest_walk_time_sec'] // 60} min, Distance: {trip['dest_walk_distance']}")
         print(f"  Total Travel Time: {trip['total_travel_time_sec'] // 60} min")
 
+    if walking_option_data:
+        walk_time = walking_option_data['duration_value']
+        walk_dist_km = walking_option_data['distance_text']
+        leave_by = time.subtract_time(next_class["start_time"], walk_time)
+        walk_trip = {
+            "mode": "walk",
+            "leave_by": leave_by,
+            "walk_time_min": walk_time // 60,
+            "walk_distance_km": walk_dist_km,
+            "from": class_entry['building'],
+            "to": next_class['building']
+        }
+
+        print(f"\nOption 3: Walk Only")
+        print(f"  To arrive at {next_class['building']} by {next_class['start_time']}, you should leave by {leave_by}")
+        print(f"    • Walk Time: {walk_trip['walk_time_min']} min")
+        print(f"    • Walk Distance: {walk_trip['walk_distance_km']}")
+    else:
+        walk_trip = None
+
     if len(final_trips) == 1:
         print("\nOnly one optimal trip found. Automatically selected.")
         return final_trips[0]
 
     # Prompt user to choose one of the two
+    valid_options = [str(i + 1) for i in range(len(final_trips))]
+    if walking_option_data:
+        valid_options.append("3")
+
     while True:
-        choice = input("\nSelect your preferred option (1 or 2): ").strip()
-        if choice in {"1", "2"}:
+        choice = input("\nSelect your preferred option (1, 2, or 3): ").strip()
+        if choice in {"1", "2"} and int(choice) <= len(final_trips):
             selected = final_trips[int(choice) - 1]
             print(f"\nYou selected Option {choice}: {selected['route_name']}.")
             return selected
+        elif choice == "3" and walk_trip:
+            print("\nYou selected Option 3: Walk Only.")
+            return walk_trip
         else:
-            print("Invalid input. Please enter 1 or 2.")
+            print("Invalid input. Please enter 1, 2, or 3.")
 
