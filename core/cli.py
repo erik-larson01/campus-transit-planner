@@ -202,9 +202,31 @@ def prompt_user_to_select_trip(final_trips: List[Dict[str, Any]], class_entry: D
     :param walking_option_data: google API data if a user simply walked between classes
     :return: selected trip dict or None
     """
-    if not final_trips:
-        print("\nNo valid trip options found between classes.")
-        return None
+    walk_trip = None
+    leave_by = None
+
+    # Get walking data if it exists
+    if walking_option_data:
+        walk_time = walking_option_data['duration_value']
+        walk_dist_km = walking_option_data['distance_text']
+        leave_by = time.subtract_time(next_class['start_time'], walk_time)
+        walk_trip = {
+            "mode": "walk",
+            "leave_by": leave_by,
+            "walk_time_min": walk_time // 60,
+            "walk_distance_km": walk_dist_km,
+            "from": class_entry['building'],
+            "to": next_class['building']
+        }
+
+    # If walking is the only option, print and return the walking data
+    if not final_trips and walk_trip:
+        print("\nNo valid trip options found between classes. Walking automatically selected.")
+        print(f"\nOption 1: Walk Only")
+        print(f"  To arrive at {next_class['building']} by {next_class['start_time']}, you should leave by {leave_by}")
+        print(f"    • Walk Time: {walk_trip['walk_time_min']} min")
+        print(f"    • Walk Distance: {walk_trip['walk_distance_km']}")
+        return walk_trip
 
     print("\n--- Best Trip Option(s) ---")
 
@@ -222,44 +244,40 @@ def prompt_user_to_select_trip(final_trips: List[Dict[str, Any]], class_entry: D
         print(f"    • Walk Time: {trip['dest_walk_time_sec'] // 60} min, Distance: {trip['dest_walk_distance']}")
         print(f"  Total Travel Time: {trip['total_travel_time_sec'] // 60} min")
 
-    if walking_option_data:
-        walk_time = walking_option_data['duration_value']
-        walk_dist_km = walking_option_data['distance_text']
-        leave_by = time.subtract_time(next_class["start_time"], walk_time)
-        walk_trip = {
-            "mode": "walk",
-            "leave_by": leave_by,
-            "walk_time_min": walk_time // 60,
-            "walk_distance_km": walk_dist_km,
-            "from": class_entry['building'],
-            "to": next_class['building']
-        }
-
-        print(f"\nOption 3: Walk Only")
+    if walk_trip:
+        print(f"\nOption {len(final_trips) + 1}: Walk Only")
         print(f"  To arrive at {next_class['building']} by {next_class['start_time']}, you should leave by {leave_by}")
         print(f"    • Walk Time: {walk_trip['walk_time_min']} min")
         print(f"    • Walk Distance: {walk_trip['walk_distance_km']}")
     else:
         walk_trip = None
 
-    if len(final_trips) == 1:
-        print("\nOnly one optimal trip found. Automatically selected.")
-        return final_trips[0]
-
-    # Prompt user to choose one of the two
-    valid_options = [str(i + 1) for i in range(len(final_trips))]
-    if walking_option_data:
-        valid_options.append("3")
+    # Prompt user to choose one of the options
+    valid_options = []
+    for i in range(len(final_trips)):
+        valid_options.append(str(i + 1))
+    if walk_trip:
+        valid_options.append(str(len(valid_options) + 1))
 
     while True:
-        choice = input("\nSelect your preferred option (1, 2, or 3): ").strip()
-        if choice in {"1", "2"} and int(choice) <= len(final_trips):
-            selected = final_trips[int(choice) - 1]
-            print(f"\nYou selected Option {choice}: {selected['route_name']}.")
-            return selected
-        elif choice == "3" and walk_trip:
-            print("\nYou selected Option 3: Walk Only.")
-            return walk_trip
-        else:
-            print("Invalid input. Please enter 1, 2, or 3.")
+        # Ask the user to select an option
+        choice = input(f"\nSelect your preferred option ({', '.join(valid_options)}): ").strip()
+        if choice in valid_options:
+            choice_idx = int(choice) - 1
+            if choice_idx < len(final_trips):
+                selected = final_trips[choice_idx]
+                print(f"\nYou've selected Option {choice}: {selected['route_name']}.")
+                return selected
+            elif walk_trip and choice == str(len(valid_options)):
+                print(f"\nYou selected Option {choice}: Walk Only.")
+                return walk_trip
+        print("Invalid input. Please enter a valid option.")
 
+
+def output_final_schedule(results: List[Dict[str, Any]], file_path: str= "output/daily_plan.txt"):
+    """
+    Outputs the user picked trip options into the terminal as well as to a file daily_plan.txt for easier reading
+    :param results: the user's decision options
+    :param file_path: the file path of daily_plan.txt
+    :return:
+    """
