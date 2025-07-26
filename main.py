@@ -16,6 +16,7 @@ def main():
     gtfs_dict = gtfs.load_gtfs_files()
     print("\nReady to begin transit planning...\n")
     results = planner.plan_route(final_schedule, max_walking_dist, gtfs_dict)
-
+    cli.output_final_schedule(results, file_path="output/daily_plan.txt")
+    print("\nFull transit plan output to output/daily_plan.txt")
 if __name__ == "__main__":
     main()
