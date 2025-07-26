@@ -1,0 +1,141 @@
+=== Daily Transit Schedule ===
+
+📅 Monday
+──────────────
+
+11:00:00 - 11:50:00 | Class 1: Agricultural Hall
+
+Transit to Class 2: Noland Hall
+    • Mode: Bus (Earliest Arrival)
+    • Route: Route 80 (West Loop) - MEMORIAL UNION VIA EAGLE HEIGHTS
+    • Leave Agricultural Hall by: 11:52:18
+    • Arrive by: 12:01:57
+
+    Boarding Stop: Linden at Henry
+        • Departs at: 11:53:43
+        • Walk to stop: 1 min, 0.1 km
+    Destination Stop: W Dayton at N Mills
+        • Arrives at: 12:00:35
+        • Walk from stop: 1 min, 0.1 km
+    Total Travel Time: 9 min
+
+13:20:00 - 14:10:00 | Class 2: Noland Hall
+
+📅 Tuesday
+───────────────
+
+12:30:00 - 13:45:00 | Class 1: DeLuca Biochemistry Building
+
+Transit to Class 2: Ingraham Hall
+    • Mode: Bus (Earliest Arrival)
+    • Route: Route 28 (Eastbound) - SHERMAN
+    • Leave DeLuca Biochemistry Building by: 13:46:49
+    • Arrive by: 13:57:55
+
+    Boarding Stop: Babcock at Linden
+        • Departs at: 13:50:34
+        • Walk to stop: 3 min, 0.3 km
+    Destination Stop: Linden at N Charter
+        • Arrives at: 13:52:20
+        • Walk from stop: 5 min, 0.4 km
+    Total Travel Time: 11 min
+
+14:30:00 - 15:45:00 | Class 2: Ingraham Hall
+
+📅 Wednesday
+─────────────────
+
+08:00:00 - 09:15:00 | Class 1: Brogden Psychology Building
+
+Transit to Class 2: Agricultural Hall
+    • Mode: Walk Only
+    • Leave by: 10:50:09
+    • Arrive by:  11:00:00
+    • Walk Time: 9 min
+    • Distance: 0.7 km
+
+11:00:00 - 11:50:00 | Class 2: Agricultural Hall
+
+Transit to Class 3: Noland Hall
+    • Mode: Bus (Shortest Time)
+    • Route: Route 80 (West Loop) - MEMORIAL UNION VIA EAGLE HEIGHTS
+    • Leave Agricultural Hall by: 11:52:18
+    • Arrive by: 12:01:57
+
+    Boarding Stop: Linden at Henry
+        • Departs at: 11:53:43
+        • Walk to stop: 1 min, 0.1 km
+    Destination Stop: W Dayton at N Mills
+        • Arrives at: 12:00:35
+        • Walk from stop: 1 min, 0.1 km
+    Total Travel Time: 9 min
+
+13:20:00 - 14:10:00 | Class 3: Noland Hall
+
+📅 Thursday
+────────────────
+
+12:30:00 - 13:45:00 | Class 1: DeLuca Biochemistry Building
+
+Transit to Class 2: Ingraham Hall
+    • Mode: Bus (Earliest Arrival)
+    • Route: Route 38 (Eastbound) - MONONA/DUTCH MILL
+    • Leave DeLuca Biochemistry Building by: 14:04:04
+    • Arrive by: 14:13:33
+
+    Boarding Stop: Linden at Henry
+        • Departs at: 14:07:09
+        • Walk to stop: 3 min, 0.2 km
+    Destination Stop: Linden at N Charter
+        • Arrives at: 14:07:58
+        • Walk from stop: 5 min, 0.4 km
+    Total Travel Time: 9 min
+
+14:30:00 - 15:45:00 | Class 2: Ingraham Hall
+
+
+📅 Friday
+──────────────
+
+08:00:00 - 09:15:00 | Class 1: Brogden Psychology Building
+
+Transit to Class 2: Agricultural Hall
+    • Mode: Bus (Earliest Arrival)
+    • Route: Route 80 (West Loop) - MEMORIAL UNION VIA EAGLE HEIGHTS
+    • Leave Brogden Psychology Building by: 09:19:25
+    • Arrive by: 09:29:45
+
+    Boarding Stop: Observatory at N Charter
+        • Departs at: 09:26:19
+        • Walk to stop: 6 min, 0.4 km
+    Destination Stop: Linden at Henry
+        • Arrives at: 09:27:46
+        • Walk from stop: 1 min, 0.1 km
+    Total Travel Time: 10 min
+
+11:00:00 - 11:50:00 | Class 2: Agricultural Hall
+
+Transit to Class 3: Noland Hall
+    • Mode: Walk Only
+    • Leave by: 13:07:08
+    • Arrive by:  13:20:00
+    • Walk Time: 12 min
+    • Distance: 1.0 km
+
+13:20:00 - 14:10:00 | Class 3: Noland Hall
+
+Transit to Class 4: Ingraham Hall
+    • Mode: Bus (Shortest Time)
+    • Route: Route 38 (Westbound) - UNIVERSITY ROW
+    • Leave Noland Hall by: 14:10:32
+    • Arrive by: 14:22:58
+
+    Boarding Stop: University at N Mills
+        • Departs at: 14:15:15
+        • Walk to stop: 4 min, 0.3 km
+    Destination Stop: N Charter at University
+        • Arrives at: 14:15:58
+        • Walk from stop: 7 min, 0.4 km
+    Total Travel Time: 12 min
+
+15:30:00 - 16:20:00 | Class 4: Ingraham Hall
