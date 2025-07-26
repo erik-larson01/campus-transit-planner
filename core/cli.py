@@ -1,8 +1,10 @@
+import os
 import sys
 from typing import List, Dict, Any, Optional
 import core.schedule_parser as schedule_parser
 import core.building_matcher as buildings
 import utils.time_utils as time
+
 
 def load_and_validate_schedule() -> List[Dict[str, any]]:
     """
@@ -113,6 +115,7 @@ def match_and_confirm_buildings(user_buildings: List[str], buildings_data: List[
         sys.exit(1)
     return name_mapping
 
+
 def run_schedule_validation() -> List[Dict[str, Any]]:
     """
     High-level function that runs the complete flow of loading and validating the schedule, matches building data,
@@ -191,6 +194,7 @@ def get_user_walking_preference() -> float:
 
         except ValueError:
             print("Please enter a valid number or press Enter for default.")
+
 
 def prompt_user_to_select_trip(final_trips: List[Dict[str, Any]], class_entry: Dict[str, Any],
                                next_class: Dict[str, Any], walking_option_data) -> Optional[Dict[str, Any]]:
@@ -274,10 +278,80 @@ def prompt_user_to_select_trip(final_trips: List[Dict[str, Any]], class_entry: D
         print("Invalid input. Please enter a valid option.")
 
 
-def output_final_schedule(results: List[Dict[str, Any]], file_path: str= "output/daily_plan.txt"):
+def output_final_schedule(results: List[Dict[str, Any]], file_path: str = "output/daily_plan.txt") -> None:
     """
     Outputs the user picked trip options into the terminal as well as to a file daily_plan.txt for easier reading
     :param results: the user's decision options
     :param file_path: the file path of daily_plan.txt
     :return:
     """
+    # Ensure output directory exists
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+    schedule_by_day = {}
+    weekday_order = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']
+
+    # Group results by day
+    for entry in results:
+        day = entry["from_class"]["day"].lower()
+        if day not in schedule_by_day:
+            schedule_by_day[day] = []
+        schedule_by_day[day].append(entry)
+
+    lines = ["\n=== Daily Transit Schedule ==="]
+
+    # Output transit plan in schedule format
+    for day in weekday_order:
+        if day in schedule_by_day:
+            lines.append(f"\n📅 {day.capitalize()}")
+            lines.append("─" * (len(day) + 8))
+
+            for i, entry in enumerate(schedule_by_day[day]):
+                from_class = entry["from_class"]
+                to_class = entry["to_class"]
+                trip = entry["best_trip"]
+
+                lines.append(
+                f"\n{from_class['start_time'].strip()} - {from_class['end_time'].strip()} | Class {i + 1}: {from_class['building']}")
+
+                lines.append(f"\nTransit to Class {i + 2}: {to_class['building']}")
+                if trip["mode"] == "bus":
+                    mode_label = "Bus (Earliest Arrival)" if i == 0 else "Bus (Shortest Time)"
+                else:
+                    mode_label = "Walk Only"
+                lines.append(f"    • Mode: {mode_label}")
+
+                if trip["mode"] == "bus":
+                    lines.append(f"    • Route: {trip['route_name']}")
+                    lines.append(f"    • Leave {from_class['building']} by: {trip['time_to_leave']}")
+                    lines.append(f"    • Arrive by: {trip['arrive_at_building_time']}")
+
+                    lines.append(f"\n    Boarding Stop: {trip['origin_stop_name']}")
+                    lines.append(f"        • Departs at: {trip['origin_departure_time']}")
+                    lines.append(f"        • Walk to stop: {trip['origin_walk_time'] // 60} min, {trip['origin_walk_distance']}")
+
+                    lines.append(f"    Destination Stop: {trip['destination_stop_name']}")
+                    lines.append(f"        • Arrives at: {trip['destination_arrival_time']}")
+                    lines.append(f"        • Walk from stop: {trip['dest_walk_time_sec'] // 60} min, {trip['dest_walk_distance']}")
+
+                    lines.append(f"    Total Travel Time: {trip['total_travel_time_sec'] // 60} min")
+
+                elif trip["mode"] == "walk":
+                    lines.append(f"    • Leave by: {trip['leave_by']}")
+                    lines.append(f"    • Arrive by: {to_class['start_time']}")
+                    lines.append(f"    • Walk Time: {trip['walk_time_min']} min")
+                    lines.append(f"    • Distance: {trip['walk_distance_km']}")
+
+            # Print the last class on a given day after trips are found
+            last_entry = schedule_by_day[day][-1]
+            to_class = last_entry["to_class"]
+            last_class_num = len(schedule_by_day[day]) + 1
+
+            lines.append(
+                f"\n{to_class['start_time'].strip()} - {to_class['end_time'].strip()} | Class {last_class_num}: {to_class['building']}"
+            )
+
+    # Write to file
+    with open(file_path, "w") as f:
+        f.write("\n".join(lines))
+
+    print("\n".join(lines))
