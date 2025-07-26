@@ -10,5 +10,6 @@ COMP SCI 300, Programming II, Friday, 13:20:00, 14:10:00, Noland Hall
 ECON 301, Intermediate Micro, Tuesday, 14:30:00, 15:45:00, Ingraham Hall
 ECON 301, Intermediate Micro, Thursday, 14:30:00, 15:45:00, Ingraham Hall
 ECON 301, Intermediate Micro, Friday, 15:30:00, 16:20:00, Ingraham Hall
-
+GENETICS 133, Genetics in the News, Tuesday, 12:30:00, 13:45:00, DeLuca Biochemistry Building
+GENETICS 133, Genetics in the News, Thursday, 12:30:00, 13:45:00, DeLuca Biochemistry Building
 
