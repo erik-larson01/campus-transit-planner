@@ -4,7 +4,7 @@ import pandas as pd
 from dotenv import load_dotenv
 import core.cli as cli
 import core.gtfs_parser as gtfs
-import utils.distance as dist
+import utils.distance_utils as dist
 import utils.time_utils as time
 import core.schedule_parser as parser
 
