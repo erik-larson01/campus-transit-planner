@@ -112,16 +112,25 @@ The planner will:
 - It will also be printed to the terminal in a readable, day-by-day format.
 
 ## Running the CLI
-Below is my class schedule on a given Wednesday, where one class is in Brogden Psychology Building is missing a part of the building title:
+Below is my `class_schedule.txt` on a given Wednesday, where one class is in Brogden Psychology Building is missing a part of the building title:
 ```
 course_code,class_name,day,start_time,end_time,building
-NUTRI SCI 132, Nutrition Today, Wednesday, 11:00:00, 11:50:00, Agricultural Hall
 COMP SCI 252, Intro Comp Eng, Wednesday, 08:00:00, 09:15:00, Psychology Building
+NUTRI SCI 132, Nutrition Today, Wednesday, 11:00:00, 11:50:00, Agricultural Hall
 COMP SCI 300, Programming II, Wednesday, 13:20:00, 14:10:00, Noland Hall
 ```
 
 I run the program with `python main.py`, and see how the building name will be matched to its correct name in the UW-Madison campus map:
+![Matching Example](./images/matching.png)
 
+After a max walking distance is set, the program generates the best two valid trips between the first two classes, as well as a walking only option:
+![First Trip Example](./images/first-trip.png)
+
+The same is done for the second trip between the final two classes:
+![Second Trip Example](./images/second-trip.png)
+
+Finally, an entire daily plan (or weekly if there are classes on multiple days) is output:
+![Final Ouput Example](./images/final-output.png)
 
 ## Project Structure
 ```
