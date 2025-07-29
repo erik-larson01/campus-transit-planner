@@ -112,7 +112,16 @@ The planner will:
 - It will also be printed to the terminal in a readable, day-by-day format.
 
 ## Running the CLI
-Here's what running the tool looks like in your terminal:
+Below is my class schedule on a given Wednesday, where one class is in Brogden Psychology Building is missing a part of the building title:
+```
+course_code,class_name,day,start_time,end_time,building
+NUTRI SCI 132, Nutrition Today, Wednesday, 11:00:00, 11:50:00, Agricultural Hall
+COMP SCI 252, Intro Comp Eng, Wednesday, 08:00:00, 09:15:00, Psychology Building
+COMP SCI 300, Programming II, Wednesday, 13:20:00, 14:10:00, Noland Hall
+```
+
+I run the program with `python main.py`, and see how the building name will be matched to its correct name in the UW-Madison campus map:
+
 
 ## Project Structure
 ```
